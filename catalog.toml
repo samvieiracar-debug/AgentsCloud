@@ -1,4 +1,9 @@
 [[agents]]
+file = "agente-simples.toml"
+category = "teste"
+maintainer = "Samuel Vieira"
+
+[[agents]]
 file = "documentador.toml"
 category = "Documentação"
 maintainer = "A definir"

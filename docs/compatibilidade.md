@@ -21,7 +21,54 @@ a validação dos agentes/catálogo e a conferência do índice:
 O clone limpo local também foi instalado e validado: 42 testes aprovados e um
 skip de symlink por privilégio Windows. Os runners da CI conseguiram executar
 esse teste. Esses resultados confirmam os cenários automatizados da CLI; a
-homologação no runtime Codex e o piloto humano abaixo continuam pendentes.
+homologação do runtime ainda estava pendente nessa execução. O teste posterior
+do `documentador` está registrado abaixo; o piloto humano continua pendente.
+
+## Simulação e uso real do documentador (DEV-003)
+
+Em 7 de setembro de 2026, o snapshot local **DEV-003-S02**, baseado
+no commit `b767676a93e1180b0a3fddf318c24083e6bfec66`, contém uma
+[simulação reproduzível](simulacao.md). São **45 testes na suíte: 44 aprovados e
+um skip local Windows**, por falta de privilégio de symlink (WinError 1314).
+Essa suíte ampliada ainda não foi publicada nem executada na CI remota.
+
+O laboratório persistente passou em **25/25 verificações**. Criou os agentes
+`qa-resumo` e `qa-revisor`, fez dois uploads com commits e pushes para um remoto
+bare local, sincronizou o consumidor e instalou cinco TOMLs em um perfil
+isolado. Conferiu duplicidade, recusa, idempotência e preservação de conflito.
+Somente as respostas e a seleção foram simuladas; Git, arquivos e instalação
+foram reais.
+
+Separadamente, o Codex **0.153.0-alpha.5, em Windows**, executou o agente nativo
+`documentador` em uma amostra Python. O TOML instalado foi copiado para a pasta
+`.codex/agents/` de um workspace de teste. Original, instalado e arquivo usado
+pelo runtime tinham o mesmo SHA256:
+
+```text
+dd3756d88aafe1bdbf238dcb3e940f3fb69edecbbb4623433b1b72619df42656
+```
+
+O teste usou um processo próprio `app-server --stdio`, controlador e filho
+efêmeros, sandbox `read-only` e o modelo configurado `gpt-6-astra`. Os metadados
+do filho confirmaram `agentRole = "documentador"` e vínculo com seu controlador.
+Ele leu módulo, testes e README, executou `python -B -m unittest -v` com **3/3
+aprovados** e produziu documentação sobre cálculo de desconto, lista vazia e
+`ValueError`. Os arquivos de origem permaneceram idênticos.
+
+**Condição observada:** foi necessário registrar o papel explicitamente na
+configuração dessa sessão por `agents.documentador.config_file`, apontando
+para o caminho absoluto do TOML, e `agents.documentador.description`. Essas
+chaves fazem parte da [referência oficial de configuração](https://learn.chatgpt.com/docs/config-file/config-reference).
+Apenas colocar o arquivo no projeto não disponibilizou o papel nas tentativas
+iniciais, que emitiram um aviso de projeto não confiável. A causa completa da
+descoberta automática não foi isolada; ela continua sem homologação neste
+ambiente. O teste com registro explícito não altera essa conclusão.
+
+A autenticação existente foi usada para o acesso ao Codex, sem copiar
+credenciais ou instalar agentes no perfil pessoal. Não houve mudança persistente
+em `config.toml`. Os demais agentes, outras combinações de runtime/sistema e o
+piloto com três participantes continuam pendentes. Os registros anteriores
+abaixo são históricos e mantêm os resultados obtidos naquela etapa.
 
 ## Evidências registradas antes da primeira CI
 

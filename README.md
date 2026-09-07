@@ -29,8 +29,10 @@ AgentsCloud/
 ├── .github/workflows/validate.yml # CI Windows, Linux e macOS
 ├── CONTRIBUTING.md           # Contribuição e recuperação
 ├── docs/compatibilidade.md   # Evidências e roteiro de homologação/piloto
-├── update.py                 # Atalho para agentscloud update
-├── upload.py                 # Atalho para agentscloud upload
+├── update.cmd / upload.cmd   # Duplo clique no Windows
+├── update.py / upload.py     # Atalhos portáteis que preferem a .venv local
+├── _launcher.py              # Inicialização e diagnóstico sem dependências
+├── scripts/_launcher_console.ps1 # Detecção do console dos lançadores Windows
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
@@ -61,6 +63,41 @@ nem publica a base por conta própria.
 Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para contribuições novas, alterações
 de agentes existentes, revisão e recuperação. O estado da compatibilidade e o
 roteiro de piloto estão em [docs/compatibilidade.md](docs/compatibilidade.md).
+
+## Abrir com duplo clique no Windows
+
+Depois de executar `uv sync --locked` na pasta do clone, abra **`update.cmd`**
+para sincronizar/instalar ou **`upload.cmd`** para contribuir. No Explorador de
+Arquivos, habilite a exibição das extensões para identificar os arquivos `.cmd`.
+
+Esses lançadores usam o Python de `.venv`, mesmo que a associação dos arquivos
+`.py` aponte para outro Python. A janela criada pelo clique aguarda uma tecla ao
+final, tanto no sucesso quanto no erro. Se o ambiente ainda não estiver preparado,
+a mensagem orienta executar `uv sync --locked`; os lançadores não instalam pacotes
+automaticamente. A identificação dessa janela usa o Windows PowerShell nativo.
+
+Os atalhos `update.py` e `upload.py` também preferem `.venv` antes de carregar a
+CLI e aguardam Enter quando identificam seu próprio console. Eles precisam de
+uma associação `.py` funcional para iniciar; por isso, prefira os arquivos `.cmd`
+para o clique. Sem `.venv`, os `.py` tentam o interpretador atual e exibem uma
+orientação se faltarem dependências.
+
+Em um terminal já aberto ou com entrada/saída redirecionada, os atalhos encerram
+com o código da CLI, sem acrescentar pausa. Para diagnosticar a preparação sem
+consultar o remoto nem instalar agentes, execute na pasta do clone:
+
+```powershell
+.\update.cmd --help
+.\upload.cmd --help
+uv run agentscloud validate
+```
+
+Se aparecer **checkout sujo**, examine `git status` e resolva suas alterações
+antes de sincronizar ou contribuir. A proteção continua valendo nos atalhos.
+Se uma política do computador bloquear o script PowerShell ou impedir a
+identificação do console, use um terminal já aberto para ler o resultado.
+Automações que hospedem os scripts em seu próprio processo Python podem definir
+`AGENTSCLOUD_NO_PAUSE=1` para desabilitar explicitamente a pausa.
 
 ## Criar um agente
 
@@ -198,13 +235,19 @@ Os testes usam remotos Git e diretórios pessoais temporários; não publicam ne
 instalam agentes na conta real. A primeira [execução da CI](https://github.com/samvieiracar-debug/AgentsCloud/actions/runs/34084897708)
 aprovou os 43 testes, sem skips, em Windows, Linux e macOS com Python 3.11.
 Validação TOML é estrutural: não comprova carregamento, seleção ou execução do
-agente em uma sessão real do Codex. Essa homologação e o piloto continuam pendentes.
+agente em uma sessão real do Codex. O teste local posterior do `documentador`
+com registro explícito do TOML está documentado em
+[compatibilidade](docs/compatibilidade.md#simulação-e-uso-real-do-documentador-dev-003).
+A descoberta automática e o piloto humano ainda precisam de homologação.
 
 O workflow [.github/workflows/validate.yml](.github/workflows/validate.yml) exige
 Git e executa esses checks com Python 3.11 em Windows, Linux e macOS após push ou
 pull request. Consulte os resultados por commit no [GitHub Actions](https://github.com/samvieiracar-debug/AgentsCloud/actions).
 A existência do workflow não comprova uma execução aprovada nem a homologação
 do runtime Codex; veja [evidências e pendências](docs/compatibilidade.md).
+
+Para uma demonstração reproduzível com respostas simuladas, Git real e perfis
+isolados, consulte [o laboratório de sincronização](docs/simulacao.md).
 
 ## Índice de Agentes
 

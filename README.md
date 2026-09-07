@@ -275,4 +275,10 @@ atualizado com `agentscloud index`.
 | --- | --- | --- | --- | --- |
 | [planejador-testes](Agents/planejador-testes.toml) | Use o agente planejador-testes para … | Qualidade | Propõe testes a partir de requisitos, casos de borda e riscos de regressão. | A definir |
 
+### testes
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [teste-local](Agents/teste-local.toml) | Use o agente teste-local para … | testes | Agente simples para verificar o uso de um TOML local no Codex. | Samuel Vieira |
+
 <!-- agentscloud:index:end -->

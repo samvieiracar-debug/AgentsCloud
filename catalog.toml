@@ -12,3 +12,8 @@ maintainer = "A definir"
 file = "revisor-codigo.toml"
 category = "Desenvolvimento"
 maintainer = "A definir"
+
+[[agents]]
+file = "teste-local.toml"
+category = "testes"
+maintainer = "Samuel Vieira"

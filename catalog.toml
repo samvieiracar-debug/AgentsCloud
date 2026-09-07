@@ -32,3 +32,8 @@ maintainer = "A definir"
 file = "teste-local.toml"
 category = "testes"
 maintainer = "Samuel Vieira"
+
+[[agents]]
+file = "teste-remoto.toml"
+category = "teste"
+maintainer = "Samue"

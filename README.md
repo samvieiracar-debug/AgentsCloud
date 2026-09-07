@@ -349,6 +349,7 @@ atualizado com `agentscloud index`.
 | [agente-simples](Agents/agente-simples.toml) | Use o agente agente-simples para … | teste | Agente simples para responder perguntas e executar tarefas pontuais. | Samuel Vieira |
 | [ola-teste](Agents/ola-teste.toml) | Use o agente ola-teste para … | teste | Agente simples para testar uma resposta curta e previsível no Codex. | Samuel Vieira |
 | [pato-bobo](Agents/pato-bobo.toml) | Use o agente pato-bobo para … | teste | Agente bobo que responde Quack! e conta uma piada curta para testar o upload. | Samuel |
+| [teste-remoto](Agents/teste-remoto.toml) | Use o agente teste-remoto para … | teste | Agente simples para verificar o uso de um TOML local no Codex. | Samue |
 
 ### testes
 

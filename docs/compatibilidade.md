@@ -5,7 +5,25 @@ carregamento real dos agentes pelo Codex. As evidências abaixo são um registro
 datado da preparação da versão 0.1.0, em **7 de setembro de 2026**. Resultados
 posteriores pertencem ao commit e à execução que os produziram.
 
-## Evidências disponíveis
+## Primeira execução remota verificada
+
+A [CI de 7 de setembro de 2026](https://github.com/samvieiracar-debug/AgentsCloud/actions/runs/34084897708)
+concluiu com sucesso para o commit `5e959f3a4d6efa19ad9d19e8b96653999ce633af`.
+Em cada plataforma, passaram os **43 testes, sem skips**, a instalação pelo lock,
+a validação dos agentes/catálogo e a conferência do índice:
+
+| Plataforma do runner | Python | Testes aprovados | Skips |
+| --- | --- | --- | --- |
+| Windows | 3.11 | 43 | 0 |
+| Linux | 3.11 | 43 | 0 |
+| macOS | 3.11 | 43 | 0 |
+
+O clone limpo local também foi instalado e validado: 42 testes aprovados e um
+skip de symlink por privilégio Windows. Os runners da CI conseguiram executar
+esse teste. Esses resultados confirmam os cenários automatizados da CLI; a
+homologação no runtime Codex e o piloto humano abaixo continuam pendentes.
+
+## Evidências registradas antes da primeira CI
 
 | Verificação | Evidência registrada na preparação de 0.1.0 | Limite |
 | --- | --- | --- |

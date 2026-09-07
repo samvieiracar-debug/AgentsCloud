@@ -195,10 +195,10 @@ uv run agentscloud index --check
 ```
 
 Os testes usam remotos Git e diretórios pessoais temporários; não publicam nem
-instalam agentes na conta real. A base tem testes executados no Windows com
-Python 3.11 e Git. O uso de APIs portáveis prepara macOS/Linux, mas esses sistemas
-ainda precisam de execução de testes e piloto. Validação TOML é estrutural: não
-comprova carregamento, seleção ou execução do agente em uma sessão real do Codex.
+instalam agentes na conta real. A primeira [execução da CI](https://github.com/samvieiracar-debug/AgentsCloud/actions/runs/34084897708)
+aprovou os 43 testes, sem skips, em Windows, Linux e macOS com Python 3.11.
+Validação TOML é estrutural: não comprova carregamento, seleção ou execução do
+agente em uma sessão real do Codex. Essa homologação e o piloto continuam pendentes.
 
 O workflow [.github/workflows/validate.yml](.github/workflows/validate.yml) exige
 Git e executa esses checks com Python 3.11 em Windows, Linux e macOS após push ou

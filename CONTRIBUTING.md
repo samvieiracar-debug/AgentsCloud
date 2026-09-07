@@ -36,7 +36,9 @@ antes de continuar. O upstream identifica o remoto e a branch de destino.
    Ctrl+C cancela a interação.
 
 O upload cria um commit apenas com o novo agente, `catalog.toml` e `README.md`.
-Exige HEAD igual ao upstream consultado e não publica commits locais anteriores.
+Para criar uma contribuição nova, exige HEAD igual ao upstream consultado.
+Se houver commits locais adiantados, oferece revisar e publicar todo o conjunto
+com confirmação específica, encerrando essa rodada sem scan nem novo commit.
 Se houver novidades remotas, execute `uv run agentscloud update` antes de tentar
 contribuir novamente. Nome ou arquivo ocupado cancela com **“Esse nome está
 indisponível”**; o upload não substitui um agente existente.
@@ -133,11 +135,29 @@ Se a cópia ocorreu e o commit falhou, os arquivos permanecem disponíveis. Conf
 `git status` e `git diff --cached`, corrija a causa e valide catálogo/índice antes
 de concluir manualmente o commit ou desfazer somente sua contribuição.
 
-Se o push falhou, o commit local é preservado e a CLI informa seu hash como
-publicação pendente. Confira autenticação, permissões e histórico remoto.
-Reconcilie eventuais mudanças com o processo Git da equipe antes de tentar
-publicar esse commit manualmente. Repetir `upload` não resolve um commit pendente.
-Não use force push como recuperação automática.
+Se o push falhou, a CLI preserva o commit e consulta o destino efetivo de escrita.
+Se o SHA já estiver contido no remoto, confirma a publicação mesmo que a resposta
+do push tenha falhado. Caso contrário, informa pendência ou resultado incerto e
+pode oferecer uma única tentativa adicional, sempre com nova confirmação.
+
+Para retomar, execute `upload`. Revise todos os SHA, assuntos, arquivos e destino
+apresentados: o aceite publica o conjunto inteiro de commits locais adiantados,
+inclusive commits preparados manualmente. O fluxo revalida o estado e envia
+exatamente o SHA aprovado. Recusar preserva os commits; essa rodada não faz scan,
+cópia nem novo commit. A revisão e as regras da equipe continuam aplicáveis.
+
+Se o histórico divergiu ou o destino mudou durante a confirmação, reconcilie
+manualmente antes de repetir. Não há reset, stash, rebase ou force push
+automático. `update` aceita HEAD adiantado e oferece instalar seu catálogo local
+com aviso e consentimento; isso não publica os commits.
+
+Use `python diagnostico.py` ou `diagnostico.cmd` para conferir ferramentas,
+ambiente, dependências, identidade Git, upstream, conectividade e eventos
+recentes. O diagnóstico funciona sem Questionary/venv e oferece reparos
+opcionais confirmados. Nome/e-mail de commit não autenticam no servidor; leitura
+remota pública não comprova acesso de escrita. A causa de uma falha antiga sem
+log não pode ser deduzida só do estado atual. Veja [diagnóstico](docs/diagnostico.md)
+para limites de tempo, modo offline e relatório sanitizado.
 
 Arquivos pessoais idênticos são preservados na instalação. Substituições aceitas
 geram backups `*.toml.bak-IDENTIFICADOR`; para recuperar um deles, revise o

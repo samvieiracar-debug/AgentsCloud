@@ -240,20 +240,23 @@ class PreparationIntegrationTests(unittest.TestCase):
                 if state == "untracked":
                     changed.unlink()
 
-    def test_local_commits_and_divergence_stop_with_rebase_autostash_enabled(self):
+    def test_ahead_is_prepared_but_divergence_stops_with_rebase_autostash_enabled(self):
         self.git(self.clone, "config", "pull.rebase", "true")
         self.git(self.clone, "config", "rebase.autoStash", "true")
         self.git(self.clone, "config", "merge.autoStash", "true")
         self.git(self.clone, "commit", "--allow-empty", "-m", "local")
         head = self.git(self.clone, "rev-parse", "HEAD")
-        for diverged in (False, True):
-            if diverged:
-                self.pushed_change()
-            result = self.launch()
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(self.git(self.clone, "rev-parse", "HEAD"), head)
-            self.assertEqual(self.git(self.clone, "stash", "list"), "")
-            self.assert_no_sync_or_runtime()
+        result = self.launch()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("commits locais", result.stdout)
+        self.assertEqual(json.loads(self.record.read_text())["prepared"], head)
+        before = self.sync.read_bytes()
+        self.pushed_change()
+        result = self.launch()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.git(self.clone, "rev-parse", "HEAD"), head)
+        self.assertEqual(self.git(self.clone, "stash", "list"), "")
+        self.assertEqual(self.sync.read_bytes(), before)
 
     def test_no_upstream_and_detached_head_stop_before_pull(self):
         self.git(self.clone, "config", "--unset", "branch.trunk.remote")

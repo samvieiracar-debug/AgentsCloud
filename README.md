@@ -22,16 +22,21 @@ AgentsCloud/
 │   ├── ui.py                 # Perguntas, seleção e saída de terminal
 │   ├── agents.py             # Validação e identidade dos agentes
 │   ├── catalog.py            # Catálogo e geração do índice
-│   ├── git.py                # Git via subprocess, sem shell
+│   ├── git.py                # Git via processos limitados, sem shell
+│   ├── recovery.py           # Revisão de pendências e confirmação de publicação
+│   ├── diagnostics.py        # Verificações e reparos opcionais sem Questionary
+│   ├── processes.py          # Timeouts, saída sanitizada e logs limitados
 │   ├── install.py            # CODEX_HOME, scan, cópia e backup
 │   └── errors.py             # Erros esperados da CLI
 ├── tests/                    # Testes com repositórios e homes temporários
 ├── .github/workflows/validate.yml # CI Windows, Linux e macOS
 ├── CONTRIBUTING.md           # Contribuição e recuperação
 ├── docs/compatibilidade.md   # Evidências e roteiro de homologação/piloto
+├── diagnostico.py / diagnostico.cmd # Diagnóstico independente da .venv
 ├── update.cmd / upload.cmd   # Duplo clique no Windows
-├── update.py / upload.py     # Atalhos portáteis que preferem a .venv local
-├── _launcher.py              # Inicialização e diagnóstico sem dependências
+├── update.py / upload.py     # Preparação automática e execução do fluxo
+├── _launcher.py              # Parser, pull e sync sem dependências externas
+├── _runtime.py               # Processo novo com a versão preparada do clone
 ├── scripts/_launcher_console.ps1 # Detecção do console dos lançadores Windows
 ├── pyproject.toml
 ├── uv.lock
@@ -66,24 +71,26 @@ roteiro de piloto estão em [docs/compatibilidade.md](docs/compatibilidade.md).
 
 ## Abrir com duplo clique no Windows
 
-Depois de executar `uv sync --locked` na pasta do clone, abra **`update.cmd`**
-para sincronizar/instalar ou **`upload.cmd`** para contribuir. No Explorador de
-Arquivos, habilite a exibição das extensões para identificar os arquivos `.cmd`.
+Abra **`update.cmd`** para sincronizar/instalar, **`upload.cmd`** para
+contribuir ou **`diagnostico.cmd`** para verificar problemas e oferecer reparos.
+O diagnóstico usa apenas a biblioteca padrão do Python; funciona sem .venv/Questionary. No Explorador, habilite a exibição das extensões para identificar os
+arquivos `.cmd`. Python 3.11+, Git e uv devem estar instalados e disponíveis no PATH.
+Os lançadores encontram um Python base por `py` ou `python`, preparam automaticamente
+a `.venv` do clone e iniciam o fluxo com esse ambiente, inclusive no primeiro uso.
+A janela criada pelo clique aguarda uma tecla no sucesso ou erro.
 
-Esses lançadores usam o Python de `.venv`, mesmo que a associação dos arquivos
-`.py` aponte para outro Python. A janela criada pelo clique aguarda uma tecla ao
-final, tanto no sucesso quanto no erro. Se o ambiente ainda não estiver preparado,
-a mensagem orienta executar `uv sync --locked`; os lançadores não instalam pacotes
-automaticamente. A identificação dessa janela usa o Windows PowerShell nativo.
+Os atalhos portáteis `python update.py` e `python upload.py` seguem a mesma
+preparação e aguardam Enter quando identificam seu próprio console. Para abrir
+um `.py` por clique é necessária uma associação Python funcional; no Windows,
+prefira os `.cmd`. A detecção do console dos `.cmd` usa Windows PowerShell.
 
-Os atalhos `update.py` e `upload.py` também preferem `.venv` antes de carregar a
-CLI e aguardam Enter quando identificam seu próprio console. Eles precisam de
-uma associação `.py` funcional para iniciar; por isso, prefira os arquivos `.cmd`
-para o clique. Sem `.venv`, os `.py` tentam o interpretador atual e exibem uma
-orientação se faltarem dependências.
+Se você iniciar o `.py` pelo Python da própria `.venv`, esse processo permanece
+vivo durante o sync. No Windows, ele pode impedir que uv recrie o ambiente.
+Nesse caso, a operação encerra com erro: feche os processos que usam a `.venv` e
+repita pelo `.cmd` ou por um Python externo. O atalho não remove um ambiente em uso.
 
 Em um terminal já aberto ou com entrada/saída redirecionada, os atalhos encerram
-com o código da CLI, sem acrescentar pausa. Para diagnosticar a preparação sem
+com o código da CLI, sem acrescentar pausa. Para consultar a ajuda sem
 consultar o remoto nem instalar agentes, execute na pasta do clone:
 
 ```powershell
@@ -138,7 +145,9 @@ para opções aceitas na versão usada pela equipe.
 4. Execute `uv run agentscloud upload`, aceite o scan, selecione com **↑/↓ e Enter**,
    informe a categoria e, opcionalmente, o responsável. Revise conteúdo, destino,
    responsável e remoto antes de confirmar.
-   **Ctrl+C** cancela a interação. Se recusar o scan, informe um caminho manual.
+   Se houver commits locais pendentes, revise e resolva essa rodada primeiro;
+   ela termina sem scan nem novo commit. **Ctrl+C** cancela a interação.
+   Se recusar o scan de uma contribuição nova, informe um caminho manual.
    A seleção usa o componente [select do Questionary](https://questionary.readthedocs.io/en/stable/pages/types.html#select).
 5. O upload copia os bytes originais do TOML, atualiza catálogo e índice, cria um
    commit desses três arquivos e executa push para o upstream da branch atual.
@@ -188,7 +197,9 @@ uv run agentscloud update
    os arquivos locais por `git merge --ff-only`. Recusar encerra sem instalação.
    O fetch já feito atualiza referências Git, mas não o checkout.
 4. Após sincronizar, oferece instalar todos os agentes no destino pessoal exibido.
-   Essa oferta também ocorre quando o repositório já está atualizado.
+   Essa oferta também ocorre quando o repositório já está atualizado. Se HEAD
+   estiver adiantado, informa que há commits não publicados e oferece instalar
+   o catálogo local mediante confirmação. Históricos divergentes são recusados.
 5. Cria a pasta de destino depois do aceite. Arquivos idênticos são preservados;
    conflitos por nome ou arquivo exigem nova confirmação e geram backups únicos
    `*.toml.bak-IDENTIFICADOR`. Recusar mantém o agente pessoal. Se um mesmo `name`
@@ -204,24 +215,80 @@ antes de tentar novamente. Os scripts não executam instruções dos TOMLs.
 | Comando | Efeito |
 | --- | --- |
 | `uv run agentscloud update` | Consulta, sincroniza e oferece instalação |
-| `uv run agentscloud upload` | Scan ou caminho manual, seleção, commit e push |
+| `uv run agentscloud upload` | Revisa pendências ou prepara e publica uma contribuição nova |
 | `uv run agentscloud validate` | Valida arquivos, catálogo e índice, sem rede |
 | `uv run agentscloud index` | Regenera apenas a seção marcada do README |
 | `uv run agentscloud index --check` | Confere o índice sem escrever |
-| `uv run python update.py` | Atalho para update, usando a raiz do script |
-| `uv run python upload.py` | Atalho para upload, usando a raiz do script |
+| `python update.py` / `update.cmd` | Pull automático, sync e fluxo update |
+| `python upload.py` / `upload.cmd` | Pull automático, sync e fluxo upload |
+| `python diagnostico.py` / `diagnostico.cmd` | Verifica ferramentas, Git, dependências e logs; oferece reparos confirmados |
+| `python diagnostico.py --offline --non-interactive` | Diagnóstico local, sem consulta remota nem reparos |
 
-A opção `--repo CAMINHO` permite indicar outro clone. Os comandos Git exigem
-commit inicial, branch com upstream e checkout/índice limpos. Upload também exige
-HEAD igual ao remoto consultado, para não publicar commits locais anteriores.
-Se o remoto avançou, execute update primeiro. Em divergências, resolva o histórico
-manualmente. Não há merge de conflitos nem force push automáticos.
+Nos quatro atalhos, `--repo CAMINHO` escolhe o **clone completo** que receberá
+todas as fases: Git, ambiente `.venv` e código executado. Sem a opção, usam a pasta
+do script; caminhos relativos são resolvidos no diretório original do terminal.
+Um atalho no clone A com `--repo B` prepara e executa B. O alvo precisa ser a raiz
+Git e conter o produto, incluindo `pyproject.toml` e `uv.lock`. O fluxo mantém
+o diretório original do terminal para `CODEX_HOME` relativo e caminhos manuais
+de upload.
 
-No upload, a confirmação final autoriza cópia, commit e push. Se o commit falhar,
-a contribuição copiada fica disponível para inspeção com `git status`; verifique
-catálogo/índice e conclua ou desfaça manualmente. Se o push falhar, o commit local
-é preservado e seu hash é exibido como publicação pendente. Confira autenticação,
-permissões e mudanças no remoto antes de reconciliar e publicar manualmente.
+Após validar os argumentos, os atalhos exigem commit inicial, branch com upstream
+e checkout/índice limpos, incluindo arquivos não rastreados. Em seguida executam
+`git pull --ff-only --no-rebase --no-autostash` no upstream configurado e
+`uv sync --locked` com o lockfile recém-atualizado. O ambiente é sempre a
+`.venv` do alvo, mesmo com outra venv ativa ou `UV_PROJECT_ENVIRONMENT` definido.
+Um processo novo carrega o código desse clone; não há repetição do bootstrap.
+
+A atualização inicial dos atalhos é automática. As confirmações de instalação
+pessoal, substituição de agentes e publicação continuam. Ajuda e argumentos
+inválidos encerram antes de Git/uv, sem criar ambiente. Prefira `python update.py`
+e `python upload.py` ao usar terminal: `uv run python update.py` pode sincronizar
+o ambiente **antes** de iniciar o atalho, fora dessa ordem interna.
+
+Qualquer falha no pull ou sync interrompe o fluxo. Se o pull terminou e o sync
+falhou, o checkout atualizado fica preservado; corrija o problema e repita o
+atalho. Não há fallback para dependências antigas, reset, stash, rebase ou
+resolução automática de divergências. HEAD estritamente adiantado é aceito:
+uv prepara as dependências do commit local, e o upload oferece revisar as
+pendências. Se HEAD ou upstream mudar após a preparação, execute novamente
+para preparar código e dependências juntos.
+
+A entrada instalada `agentscloud` mantém seu comportamento: seu `--repo` indica
+o repositório de dados, que pode conter apenas catálogo/agentes, e usa o ambiente
+já instalado. O `agentscloud update` valida o catálogo remoto e pede confirmação
+antes do fast-forward; os atalhos fazem o pull antes de validar os dados.
+Dados inválidos continuam impedindo a instalação/upload. Para criar uma nova
+contribuição, o upload exige HEAD igual ao remoto consultado. Havendo commits
+estritamente adiantados, abre uma rodada específica de revisão e publicação.
+
+No upload de agente novo, a confirmação final autoriza cópia, commit e push.
+Antes do envio, a ferramenta confere o pai, os arquivos, os modos e o conteúdo
+do commit contra a contribuição aprovada. Um commit adicional ou alteração por
+hook/escritor concorrente interrompe a publicação e fica preservado para revisão.
+Se o commit falhar, a contribuição copiada fica disponível para inspeção com
+`git status`; verifique catálogo/índice e conclua ou desfaça manualmente.
+
+Se o push falhar ou seu resultado ficar incerto, o commit local é preservado.
+O comando consulta a URL efetiva de push para confirmar se o SHA já está no
+destino, inclusive se o remoto avançou depois. Quando ainda estiver pendente,
+pode oferecer **uma nova tentativa**, com revisão e confirmação próprias;
+são no máximo dois pushes por execução, sempre do mesmo SHA.
+
+Execute `upload` novamente para retomar pendências. A prévia lista todos os
+commits locais, com SHA, assunto, arquivos e destino. Confirmar autoriza esse
+conjunto inteiro; a ferramenta não atribui sua autoria nem presume sua origem.
+Recusar mantém os commits. Aceitar revalida checkout, histórico e destino antes
+de enviar, sem repetir scan ou criar outra contribuição nessa rodada.
+Um destino múltiplo/incoerente ou histórico divergente exige correção manual.
+
+Operações Git com interação permitem o login usual pelo Git/GCM e exibem sua
+saída sanitizada durante a execução. Fetch/pull e push têm limite de 180 segundos;
+sondagens remotas sem interação usam 30 segundos, comandos locais 10 segundos,
+e `uv sync` 300 segundos. Timeout/cancelamento encerra a árvore de processos
+iniciada pelo comando. O diagnóstico explica categorias de erro e eventos
+recentes; nome/e-mail Git não são login, e leitura pública não comprova permissão
+de escrita. Consulte [o guia de diagnóstico](docs/diagnostico.md) para reparos,
+logs limitados e exportação do relatório.
 
 ## Validação e compatibilidade
 

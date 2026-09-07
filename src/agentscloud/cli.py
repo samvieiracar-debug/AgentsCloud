@@ -1,15 +1,18 @@
 """Comandos de catálogo, sincronização e contribuição."""
 
-import argparse
 from pathlib import Path
 import sys
 
+from .arguments import build_parser
+from .prepared import PreparedCheckout
 from .agents import conflicts, read_agent
 from .catalog import Bundle, load_bundle, read_readme, serialize_catalog, updated_readme, valid_category, valid_maintainer
 from .errors import AgentsCloudError, Cancelled
 from .git import Repository
 from .install import codex_home, install_agents, personal_folder, scan_personal, write_atomic
 from .ui import TerminalUI
+from .recovery import handle_pending, publish_exact
+from .processes import sanitize
 
 
 def assert_index(root: Path, bundle: Bundle) -> None:
@@ -18,10 +21,14 @@ def assert_index(root: Path, bundle: Bundle) -> None:
         raise AgentsCloudError("Índice README desatualizado. Execute agentscloud index e registre a alteração no Git.")
 
 
-def update(root: Path, ui: TerminalUI) -> None:
+def update(root: Path, ui: TerminalUI, prepared: PreparedCheckout | None = None) -> None:
     repo = Repository(root)
+    if prepared:
+        prepared.check_local(repo)
     initial_head = repo.head()
     upstream = repo.fetch_upstream()
+    if prepared:
+        prepared.check_upstream(repo, upstream)
     local = load_bundle(root)
     remote = repo.remote_bundle(upstream)
     assert_index(root, local)
@@ -35,15 +42,18 @@ def update(root: Path, ui: TerminalUI) -> None:
     for filename in sorted(set(local_by_file) - set(remote.categories)):
         ui.emit(f"  Removido do catálogo remoto: {filename} (a instalação pessoal será preservada).")
     if initial_head != upstream.commit:
-        if not repo.is_ancestor(initial_head, upstream.commit):
-            raise AgentsCloudError("Há commits locais ou divergência com o upstream. Resolva o histórico manualmente; nenhum merge foi feito.")
-        if not ui.confirm("Deseja atualizar o repositório local por fast-forward?"):
-            ui.emit("Atualização recusada. Checkout e agentes pessoais preservados.")
-            return
-        repo.fast_forward(upstream, initial_head)
-        local = load_bundle(root)
-        assert_index(root, local)
-        ui.emit(f"Repositório atualizado para {repo.head()[:12]}.")
+        if repo.is_ancestor(upstream.commit, initial_head):
+            ui.emit("O checkout contém commits locais ainda não publicados; a instalação usará esse catálogo local.")
+        elif repo.is_ancestor(initial_head, upstream.commit):
+            if not ui.confirm("Deseja atualizar o repositório local por fast-forward?"):
+                ui.emit("Atualização recusada. Checkout e agentes pessoais preservados.")
+                return
+            repo.fast_forward(upstream, initial_head)
+            local = load_bundle(root)
+            assert_index(root, local)
+            ui.emit(f"Repositório atualizado para {repo.head()[:12]}.")
+        else:
+            raise AgentsCloudError("Há divergência com o upstream. Resolva o histórico manualmente; nenhum merge foi feito.")
     else:
         ui.emit("Repositório já está atualizado.")
     destination = codex_home()
@@ -51,20 +61,30 @@ def update(root: Path, ui: TerminalUI) -> None:
     if not ui.confirm(f"Deseja instalar {len(local.agents)} agente(s) em {folder}?"):
         ui.emit("Instalação recusada.")
         return
+    if prepared:
+        prepared.check_upstream(repo, repo.fetch_upstream())
     stats = install_agents(local.agents, destination, ui.confirm, ui.emit)
     ui.emit(f"Instalação concluída: {stats['installed']} instalado(s), "
             f"{stats['unchanged']} idêntico(s), {stats['skipped']} preservado(s) por escolha.")
 
 
-def upload(root: Path, ui: TerminalUI) -> None:
+def upload(root: Path, ui: TerminalUI, prepared: PreparedCheckout | None = None) -> None:
     repo = Repository(root)
+    if prepared:
+        prepared.check_local(repo)
     initial_head = repo.head()
     upstream = repo.fetch_upstream()
+    if prepared:
+        prepared.check_upstream(repo, upstream)
+    target = repo.push_target(upstream)
+    target_tip = repo.fetch_target(target)
     local = load_bundle(root)
     remote = repo.remote_bundle(upstream)
     assert_index(root, local)
+    if handle_pending(repo, ui, upstream, target, initial_head, target_tip):
+        return
     if initial_head != upstream.commit:
-        raise AgentsCloudError("Upload exige HEAD igual ao upstream, sem commits locais anteriores. Execute update se o remoto avançou; resolva divergências manualmente.")
+        raise AgentsCloudError("O upstream difere do HEAD. Execute update ou reconcilie o histórico antes de uma nova contribuição.")
     source_root = codex_home()
     if ui.confirm("Deseja fazer um scan automático dos agentes pessoais?"):
         scan = scan_personal(source_root, local.agents + remote.agents)
@@ -99,7 +119,7 @@ def upload(root: Path, ui: TerminalUI) -> None:
     ui.emit(f"Origem: {source}\nDestino: {destination}\nNome: {agent.name}\nCategoria: {category}")
     ui.emit(f"Responsável: {maintainer or 'Não informado'}")
     ui.emit("Conteúdo a publicar:\n" + agent.content.decode("utf-8"))
-    ui.emit(f"Publicação: {upstream.remote}, {upstream.branch_ref}. "
+    ui.emit(f"Publicação: {target.display}. "
             "O commit incluirá somente o agente, catalog.toml e o índice README.md.")
     if not ui.confirm("Deseja copiar, criar o commit e executar git push desta contribuição?"):
         ui.emit("Upload recusado. Nenhum arquivo foi copiado ou publicado.")
@@ -109,11 +129,17 @@ def upload(root: Path, ui: TerminalUI) -> None:
         raise AgentsCloudError("HEAD mudou durante a confirmação. Execute upload novamente.")
     # Reconsulta o upstream para detectar publicações ocorridas durante a interação.
     fresh = repo.fetch_upstream()
+    if prepared:
+        prepared.check_upstream(repo, fresh)
     if (fresh.remote, fresh.branch_ref) != (upstream.remote, upstream.branch_ref):
         raise AgentsCloudError("Upstream mudou durante a confirmação. Execute upload novamente.")
+    if repo.push_target(fresh) != target:
+        raise AgentsCloudError("Destino de push mudou durante a confirmação. Execute upload novamente.")
     latest = repo.remote_bundle(fresh)
     if conflicts(agent, latest.agents):
         raise AgentsCloudError(f"Esse nome está indisponível: {agent.name} ({agent.file}).")
+    if repo.fetch_target(target) != target_tip:
+        raise AgentsCloudError("O destino de push avançou durante a confirmação. Execute upload novamente.")
     if fresh.commit != initial_head:
         raise AgentsCloudError("O remoto avançou durante a confirmação. Execute update antes do upload.")
     # Revalida metadados e conteúdo; o usuário aprovou precisamente os bytes exibidos.
@@ -128,48 +154,28 @@ def upload(root: Path, ui: TerminalUI) -> None:
     try:
         write_atomic(root / "catalog.toml", new_catalog)
         write_atomic(root / "README.md", new_readme)
-        repo.commit_agent([f"Agents/{agent.file}", "catalog.toml", "README.md"], agent.name)
+        approved = {f"Agents/{agent.file}": agent.content, "catalog.toml": new_catalog, "README.md": new_readme}
+        commit = repo.commit_agent(list(approved), agent.name)
+        repo.verify_contribution(commit, initial_head, approved)
     except (AgentsCloudError, OSError) as exc:
         raise AgentsCloudError(
-            f"Contribuição copiada, mas commit não concluído: {exc}\n"
+            f"Contribuição copiada, mas commit não concluído ou não confirmado: {exc}\n"
             "Arquivos locais foram preservados. Confira git status, valide catálogo/índice e conclua ou desfaça manualmente. Nenhum push foi executado."
         ) from exc
-    commit = repo.head()
-    try:
-        repo.push(upstream)
-    except AgentsCloudError as exc:
-        raise AgentsCloudError(
-            f"Push não concluído; commit local {commit} preservado. Publicação pendente.\n"
-            f"{exc}\nInspecione o remoto e o histórico antes de reconciliar e publicar manualmente; não use force push."
-        ) from exc
+    publish_exact(repo, ui, upstream, target, commit, initial_head, repo.branch())
     ui.emit(f"Agente {agent.name} publicado. Commit: {commit}")
 
 
-def build_parser(default_repo: Path | None = None) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Compartilhe agentes TOML do Codex por Git.")
-    parser.add_argument("--repo", type=Path, default=default_repo or Path.cwd(), help="Raiz do clone (padrão: diretório atual).")
-    commands = parser.add_subparsers(dest="command", required=True)
-    for name, help_text in (("update", "Consulta o upstream, atualiza e oferece instalação."),
-                            ("upload", "Seleciona um agente pessoal e publica uma contribuição."),
-                            ("validate", "Valida agentes, catálogo e índice sem acessar a rede."),
-                            ("index", "Gera o índice de agentes do README.")):
-        sub = commands.add_parser(name, help=help_text)
-        sub.add_argument("--repo", type=Path, default=argparse.SUPPRESS, help="Raiz do clone.")
-        if name == "index":
-            sub.add_argument("--check", action="store_true", help="Verifica o índice sem escrever.")
-    return parser
-
-
 def main(argv: list[str] | None = None, *, default_repo: Path | None = None,
-         ui: TerminalUI | None = None) -> int:
+         ui: TerminalUI | None = None, prepared: PreparedCheckout | None = None) -> int:
     args = build_parser(default_repo).parse_args(argv)
     terminal = ui or TerminalUI()
     root = args.repo.expanduser().resolve()
     try:
         if args.command == "update":
-            update(root, terminal)
+            update(root, terminal, prepared)
         elif args.command == "upload":
-            upload(root, terminal)
+            upload(root, terminal, prepared)
         else:
             bundle = load_bundle(root)
             if args.command == "validate" or args.check:
@@ -184,7 +190,7 @@ def main(argv: list[str] | None = None, *, default_repo: Path | None = None,
         terminal.emit("Operação cancelada. Etapas já concluídas, se houver, foram preservadas.")
         return 130
     except (AgentsCloudError, OSError, UnicodeError) as exc:
-        terminal.emit(f"Erro: {exc}")
+        terminal.emit(sanitize(f"Erro: {exc}"))
         return 1
 
 

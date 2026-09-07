@@ -444,12 +444,12 @@ class GitFlowTests(unittest.TestCase):
         self.assertIn("divergência", ui.output)
         self.assertEqual(self.head(self.clone), local_head)
 
-    def test_upload_never_publishes_previous_local_commits(self):
+    def test_upload_never_publishes_previous_local_commits_without_consent(self):
         (self.clone / "unrelated.txt").write_bytes(b"Local")
         self.git(self.clone, "commit", "-am", "Local")
-        ui = FakeUI()
-        self.command("upload", ui, 1)
-        self.assertIn("sem commits locais anteriores", ui.output)
+        ui = FakeUI([False])
+        self.command("upload", ui)
+        self.assertIn("pendências recusada", ui.output)
         self.assertEqual(self.head(self.bare), self.initial)
 
     def test_upload_scan_selective_commit_and_push_preserve_toml_bytes(self):
@@ -546,7 +546,7 @@ class GitFlowTests(unittest.TestCase):
         hook = self.bare / "hooks/pre-receive"
         hook.write_bytes(b"#!/bin/sh\nexit 1\n")
         hook.chmod(0o755)
-        ui = FakeUI([False, True], [str(source), "Teste", "Equipe Exemplo"])
+        ui = FakeUI([False, True, False], [str(source), "Teste", "Equipe Exemplo"])
         self.command("upload", ui, 1)
         self.assertIn("Publicação pendente", ui.output)
         self.assertEqual(load_bundle(self.clone).maintainers["mine.toml"], "Equipe Exemplo")

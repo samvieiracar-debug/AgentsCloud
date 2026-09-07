@@ -4,6 +4,11 @@ category = "Documentação"
 maintainer = "A definir"
 
 [[agents]]
+file = "pato-bobo.toml"
+category = "teste"
+maintainer = "Samuel"
+
+[[agents]]
 file = "planejador-testes.toml"
 category = "Qualidade"
 maintainer = "A definir"

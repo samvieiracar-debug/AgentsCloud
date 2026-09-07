@@ -275,6 +275,12 @@ atualizado com `agentscloud index`.
 | --- | --- | --- | --- | --- |
 | [planejador-testes](Agents/planejador-testes.toml) | Use o agente planejador-testes para … | Qualidade | Propõe testes a partir de requisitos, casos de borda e riscos de regressão. | A definir |
 
+### teste
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [pato-bobo](Agents/pato-bobo.toml) | Use o agente pato-bobo para … | teste | Agente bobo que responde Quack! e conta uma piada curta para testar o upload. | Samuel |
+
 ### testes
 
 | Nome | Sintaxe | Categoria | Descrição | Responsável |

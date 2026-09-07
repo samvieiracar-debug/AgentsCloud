@@ -8,6 +8,11 @@ from _launcher import _owns_python_console, _wait_for_close
 
 
 def launch(arguments=None):
+    # Redirecionamentos no Windows podem usar CP1252; -E ignora PYTHONIOENCODING.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="replace")
     own_console = _owns_python_console()
     try:
         if sys.version_info < (3, 11):

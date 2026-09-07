@@ -404,6 +404,33 @@ class GitDiagnosticsTests(unittest.TestCase):
 
 
 class WrapperTests(unittest.TestCase):
+    def test_redirected_cp1252_console_renders_and_exports_unicode(self):
+        with temporary() as directory:
+            report = Path(directory) / "report.json"
+            script = (
+                "import sys; from unittest.mock import patch; "
+                "sys.stdout.reconfigure(encoding='cp1252', errors='strict'); "
+                "sys.stderr.reconfigure(encoding='cp1252', errors='strict'); "
+                "sys.path.insert(0, sys.argv[1]); "
+                "sys.path.insert(0, sys.argv[1] + '/src'); "
+                "import diagnostico; from agentscloud.diagnostics import Diagnostics; "
+                "collect = lambda self: self.add('Destino', 'ok', 'origin \u2192 main \U0001f9ea'); "
+                "p = patch.object(Diagnostics, 'collect', collect); p.start(); "
+                "raise SystemExit(diagnostico.launch(sys.argv[2:]))"
+            )
+            env = dict(os.environ, AGENTSCLOUD_NO_PAUSE="1", PYTHONIOENCODING="utf-8")
+            for arguments, expected in ((["--non-interactive", "--output", str(report)], 0),
+                                        (["--unknown-\u2192"], 2)):
+                with self.subTest(arguments=arguments):
+                    result = subprocess.run([BASE_PYTHON, "-E", "-s", "-B", "-c", script, str(ROOT), *arguments],
+                                            cwd=directory, env=env, capture_output=True, timeout=10)
+                    self.assertEqual(result.returncode, expected, result.stderr)
+                    self.assertNotIn(b"Traceback", result.stderr)
+                    output = (result.stdout + result.stderr).decode("utf-8")
+                    self.assertIn("\u2192", output)
+            document = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual(document["checks"][0]["detail"], "origin \u2192 main \U0001f9ea")
+
     def test_python_help_and_parser_work_without_site_venv_or_questionary(self):
         with temporary() as directory:
             root = Path(directory)

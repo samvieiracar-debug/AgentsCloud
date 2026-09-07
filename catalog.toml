@@ -1,0 +1,14 @@
+[[agents]]
+file = "documentador.toml"
+category = "Documentação"
+maintainer = "A definir"
+
+[[agents]]
+file = "planejador-testes.toml"
+category = "Qualidade"
+maintainer = "A definir"
+
+[[agents]]
+file = "revisor-codigo.toml"
+category = "Desenvolvimento"
+maintainer = "A definir"

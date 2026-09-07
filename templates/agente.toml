@@ -1,0 +1,6 @@
+name = "meu-agente"
+description = "Descreva a tarefa específica em que este agente deve ser escolhido."
+developer_instructions = """
+Explique o objetivo, as entradas esperadas, os limites e o formato de entrega.
+Examine o contexto disponível antes de concluir e informe verificações reais.
+"""

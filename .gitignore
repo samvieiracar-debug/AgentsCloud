@@ -1,0 +1,13 @@
+# Estado local de coordenação: usar sempre o endereço canônico do mapa.
+/.agentscloud/controle/
+# Checkouts de execução, se forem criados futuramente neste local.
+/.worktrees/
+
+# Ambiente Python e artefatos locais.
+/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+.coverage

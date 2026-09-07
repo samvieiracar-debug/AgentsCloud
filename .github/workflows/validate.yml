@@ -1,0 +1,49 @@
+name: Validação
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11"]
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Preparar uv e Python
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.12.3"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: "true"
+
+      - name: Exigir Git para os testes de integração
+        run: git --version
+
+      - name: Instalar as dependências travadas
+        run: uv sync --locked
+
+      - name: Executar testes unitários e integração Git
+        run: uv run --locked python -m unittest discover -s tests -v
+
+      - name: Validar agentes e catálogo
+        run: uv run --locked agentscloud validate
+
+      - name: Conferir o índice publicado
+        run: uv run --locked agentscloud index --check
+

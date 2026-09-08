@@ -108,6 +108,8 @@ Automações que hospedem os scripts em seu próprio processo Python podem defin
 
 ## Criar um agente
 
+Para o funcionamento correto da indentificação de agentes o usuario deve criar uma pasta chamada 
+"agents" dentro da pasta "~/.codex" e instruir ao gpt a criar todos os agentes em .TOML dentro do agents.
 O formato standalone documentado pelo Codex exige as strings `name`, `description`
 e `developer_instructions`. `name` identifica o agente e pode diferir do nome do
 arquivo. Outras configurações são opcionais; os exemplos aqui não fixam modelo.

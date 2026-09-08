@@ -324,37 +324,6 @@ atualizado com `agentscloud index`.
 
 <!-- agentscloud:index:start -->
 
-### Desenvolvimento
 
-| Nome | Sintaxe | Categoria | Descrição | Responsável |
-| --- | --- | --- | --- | --- |
-| [revisor-codigo](Agents/revisor-codigo.toml) | Use o agente revisor-codigo para … | Desenvolvimento | Revisa uma alteração de código e aponta defeitos reproduzíveis e riscos de regressão. | A definir |
-
-### Documentação
-
-| Nome | Sintaxe | Categoria | Descrição | Responsável |
-| --- | --- | --- | --- | --- |
-| [documentador](Agents/documentador.toml) | Use o agente documentador para … | Documentação | Escreve documentação técnica a partir do comportamento confirmado no código. | A definir |
-
-### Qualidade
-
-| Nome | Sintaxe | Categoria | Descrição | Responsável |
-| --- | --- | --- | --- | --- |
-| [planejador-testes](Agents/planejador-testes.toml) | Use o agente planejador-testes para … | Qualidade | Propõe testes a partir de requisitos, casos de borda e riscos de regressão. | A definir |
-
-### teste
-
-| Nome | Sintaxe | Categoria | Descrição | Responsável |
-| --- | --- | --- | --- | --- |
-| [agente-simples](Agents/agente-simples.toml) | Use o agente agente-simples para … | teste | Agente simples para responder perguntas e executar tarefas pontuais. | Samuel Vieira |
-| [ola-teste](Agents/ola-teste.toml) | Use o agente ola-teste para … | teste | Agente simples para testar uma resposta curta e previsível no Codex. | Samuel Vieira |
-| [pato-bobo](Agents/pato-bobo.toml) | Use o agente pato-bobo para … | teste | Agente bobo que responde Quack! e conta uma piada curta para testar o upload. | Samuel |
-| [teste-remoto](Agents/teste-remoto.toml) | Use o agente teste-remoto para … | teste | Agente simples para verificar o uso de um TOML local no Codex. | Samue |
-
-### testes
-
-| Nome | Sintaxe | Categoria | Descrição | Responsável |
-| --- | --- | --- | --- | --- |
-| [teste-local](Agents/teste-local.toml) | Use o agente teste-local para … | testes | Agente simples para verificar o uso de um TOML local no Codex. | Samuel Vieira |
 
 <!-- agentscloud:index:end -->

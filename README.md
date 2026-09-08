@@ -331,5 +331,6 @@ atualizado com `agentscloud index`.
 | Nome | Sintaxe | Categoria | Descrição | Responsável |
 | --- | --- | --- | --- | --- |
 | [documentador](Agents/documentador.toml) | Use o agente documentador para … | Documentação | Escreve documentação técnica a partir do comportamento confirmado no código. | Samuel Vieira |
+| [teste-local](Agents/teste-local.toml) | Use o agente teste-local para … | Documentação | Agente simples para verificar o uso de um TOML local no Codex. | Samuel Vieira |
 
 <!-- agentscloud:index:end -->

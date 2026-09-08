@@ -2,3 +2,8 @@
 file = "documentador.toml"
 category = "Documentação"
 maintainer = "Samuel Vieira"
+
+[[agents]]
+file = "teste-local.toml"
+category = "Documentação"
+maintainer = "Samuel Vieira"

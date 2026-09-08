@@ -324,6 +324,10 @@ atualizado com `agentscloud index`.
 
 <!-- agentscloud:index:start -->
 
-Nenhum agente cadastrado.
+### Documentação
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [documentador](Agents/documentador.toml) | Use o agente documentador para … | Documentação | Escreve documentação técnica a partir do comportamento confirmado no código. | Samuel Vieira |
 
 <!-- agentscloud:index:end -->

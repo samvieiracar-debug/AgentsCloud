@@ -1,1 +1,4 @@
-agents = []
+[[agents]]
+file = "documentador.toml"
+category = "Documentação"
+maintainer = "Samuel Vieira"

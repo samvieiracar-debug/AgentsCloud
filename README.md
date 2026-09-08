@@ -326,6 +326,12 @@ atualizado com `agentscloud index`.
 
 <!-- agentscloud:index:start -->
 
+### diagnostico
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [diagnosta-agentscloud](Agents/diagnosta-agentscloud.toml) | Use o agente diagnosta-agentscloud para … | diagnostico | Diagnostica o AgentsCloud e explica a arquitetura e os fluxos da main com evidências, coordenando especialistas de leitura quando disponíveis. | Samuel Vieira |
+
 ### Documentação
 
 | Nome | Sintaxe | Categoria | Descrição | Responsável |

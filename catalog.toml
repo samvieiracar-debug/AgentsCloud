@@ -1,4 +1,9 @@
 [[agents]]
+file = "diagnosta-agentscloud.toml"
+category = "diagnostico"
+maintainer = "Samuel Vieira"
+
+[[agents]]
 file = "documentador.toml"
 category = "Documentação"
 maintainer = "Samuel Vieira"

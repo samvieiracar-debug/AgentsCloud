@@ -339,6 +339,12 @@ atualizado com `agentscloud index`.
 | [documentador](Agents/documentador.toml) | Use o agente documentador para … | Documentação | Escreve documentação técnica a partir do comportamento confirmado no código. | Samuel Vieira |
 | [teste-local](Agents/teste-local.toml) | Use o agente teste-local para … | Documentação | Agente simples para verificar o uso de um TOML local no Codex. | Samuel Vieira |
 
+### revisor
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [revisor-codigo](Agents/revisor-codigo.toml) | Use o agente revisor-codigo para … | revisor | Revisa uma alteração de código e aponta defeitos reproduzíveis e riscos de regressão. | Samuel Vieira |
+
 ### teste
 
 | Nome | Sintaxe | Categoria | Descrição | Responsável |

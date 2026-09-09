@@ -4,6 +4,11 @@ category = "teste"
 maintainer = "Samuel Vieira"
 
 [[agents]]
+file = "designer-cli.toml"
+category = "designer"
+maintainer = "Samuel Vieira"
+
+[[agents]]
 file = "diagnosta-agentscloud.toml"
 category = "diagnostico"
 maintainer = "Samuel Vieira"

@@ -326,6 +326,12 @@ atualizado com `agentscloud index`.
 
 <!-- agentscloud:index:start -->
 
+### designer
+
+| Nome | Sintaxe | Categoria | Descrição | Responsável |
+| --- | --- | --- | --- | --- |
+| [designer-cli](Agents/designer-cli.toml) | Use o agente designer-cli para … | designer | Cria interfaces visuais de terminal (CLI/TUI) extremamente personalizadas. Primeiro entende o projeto por alto; depois faz perguntas adaptadas ao usuário e ao script sobre linguagem, tamanho, cores, navegação e funcionalidades, e implementa a interface conforme as respostas. | Samuel Vieira |
+
 ### diagnostico
 
 | Nome | Sintaxe | Categoria | Descrição | Responsável |

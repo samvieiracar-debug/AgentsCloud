@@ -19,6 +19,11 @@ category = "Documentação"
 maintainer = "Samuel Vieira"
 
 [[agents]]
+file = "piadista-ia.toml"
+category = "teste"
+maintainer = "Samuel Vieira"
+
+[[agents]]
 file = "revisor-codigo.toml"
 category = "revisor"
 maintainer = "Samuel Vieira"

@@ -15,3 +15,6 @@ agentscloud = "agentscloud.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentscloud"]
+
+[tool.uv]
+link-mode = "copy"

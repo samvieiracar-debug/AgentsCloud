@@ -5,7 +5,7 @@ import sys
 
 from .arguments import build_parser
 from .prepared import PreparedCheckout
-from .agents import conflicts, read_agent
+from .agents import Agent, conflicts, read_agent
 from .catalog import Bundle, load_bundle, read_readme, serialize_catalog, updated_readme, valid_category, valid_maintainer
 from .errors import AgentsCloudError, Cancelled
 from .git import Repository
@@ -19,6 +19,31 @@ def assert_index(root: Path, bundle: Bundle) -> None:
     current = read_readme(root)
     if updated_readme(current, bundle) != current:
         raise AgentsCloudError("Índice README desatualizado. Execute agentscloud index e registre a alteração no Git.")
+
+
+def installation_selection(bundle: Bundle, ui: TerminalUI) -> list[Agent]:
+    """Seleciona somente arquivos do catálogo validado, mantendo a ordem original."""
+    choose = getattr(ui, "choose_installation", None)
+    if not callable(choose):
+        return list(bundle.agents)
+    filenames = choose(list(bundle.agents), dict(bundle.categories))
+    available = {agent.file for agent in bundle.agents}
+    if (not isinstance(filenames, list)
+            or any(not isinstance(filename, str) for filename in filenames)
+            or len(set(filenames)) != len(filenames)
+            or not set(filenames).issubset(available)):
+        raise AgentsCloudError("Seleção inválida: escolha somente agentes disponíveis no catálogo.")
+    selected = set(filenames)
+    return [agent for agent in bundle.agents if agent.file in selected]
+
+
+def review_step(ui: TerminalUI, title: str, content: str) -> bool:
+    """Interfaces com etapas podem pausar; consumidores antigos mantêm a saída."""
+    review = getattr(ui, "review_step", None)
+    if callable(review):
+        return review(title, content)
+    ui.emit(content)
+    return True
 
 
 def update(root: Path, ui: TerminalUI, prepared: PreparedCheckout | None = None) -> None:
@@ -56,14 +81,18 @@ def update(root: Path, ui: TerminalUI, prepared: PreparedCheckout | None = None)
             raise AgentsCloudError("Há divergência com o upstream. Resolva o histórico manualmente; nenhum merge foi feito.")
     else:
         ui.emit("Repositório já está atualizado.")
+    agents = installation_selection(local, ui)
+    if not agents and callable(getattr(ui, "choose_installation", None)):
+        ui.emit("Nenhum agente selecionado. Nenhuma instalação foi realizada.")
+        return
     destination = codex_home()
     folder = personal_folder(destination)
-    if not ui.confirm(f"Deseja instalar {len(local.agents)} agente(s) em {folder}?"):
+    if not ui.confirm(f"Deseja instalar {len(agents)} agente(s) em {folder}?"):
         ui.emit("Instalação recusada.")
         return
     if prepared:
         prepared.check_upstream(repo, repo.fetch_upstream())
-    stats = install_agents(local.agents, destination, ui.confirm, ui.emit)
+    stats = install_agents(agents, destination, ui.confirm, ui.emit)
     ui.emit(f"Instalação concluída: {stats['installed']} instalado(s), "
             f"{stats['unchanged']} idêntico(s), {stats['skipped']} preservado(s) por escolha.")
 
@@ -116,12 +145,21 @@ def upload(root: Path, ui: TerminalUI, prepared: PreparedCheckout | None = None)
     new_catalog = serialize_catalog(categories, maintainers)
     new_readme = updated_readme(read_readme(root), contribution)
     destination = root / "Agents" / agent.file
-    ui.emit(f"Origem: {source}\nDestino: {destination}\nNome: {agent.name}\nCategoria: {category}")
-    ui.emit(f"Responsável: {maintainer or 'Não informado'}")
-    ui.emit("Conteúdo a publicar:\n" + agent.content.decode("utf-8"))
-    ui.emit(f"Publicação: {target.display}. "
-            "O commit incluirá somente o agente, catalog.toml e o índice README.md.")
-    if not ui.confirm("Deseja copiar, criar o commit e executar git push desta contribuição?"):
+    details = (f"Origem: {source}\nDestino: {destination}\nNome: {agent.name}\nCategoria: {category}\n"
+               f"Responsável: {maintainer or 'Não informado'}")
+    if not review_step(ui, "1/3 · Dados do envio", details):
+        ui.emit("Upload recusado. Nenhum arquivo foi copiado ou publicado.")
+        return
+    if not review_step(ui, "2/3 · Conteúdo TOML", "Conteúdo a publicar:\n" + agent.content.decode("utf-8")):
+        ui.emit("Upload recusado. Nenhum arquivo foi copiado ou publicado.")
+        return
+    publication = (f"Publicação: {target.display}. "
+                   "O commit incluirá somente o agente, catalog.toml e o índice README.md.")
+    ui.emit(publication)
+    confirmation = "Deseja copiar, criar o commit e executar git push desta contribuição?"
+    if callable(getattr(ui, "review_step", None)):
+        confirmation = f"3/3 · Confirmar publicação\n{publication}\n\n{confirmation}"
+    if not ui.confirm(confirmation):
         ui.emit("Upload recusado. Nenhum arquivo foi copiado ou publicado.")
         return
     repo.require_clean()
@@ -172,7 +210,13 @@ def main(argv: list[str] | None = None, *, default_repo: Path | None = None,
     terminal = ui or TerminalUI()
     root = args.repo.expanduser().resolve()
     try:
-        if args.command == "update":
+        if args.command == "hub":
+            try:
+                from .hub import run_hub
+            except ImportError as exc:
+                raise AgentsCloudError("O hub precisa das dependências visuais. Execute uv sync --locked no clone.") from exc
+            return run_hub(root)
+        elif args.command == "update":
             update(root, terminal, prepared)
         elif args.command == "upload":
             upload(root, terminal, prepared)

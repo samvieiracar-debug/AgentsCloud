@@ -26,7 +26,7 @@ class Check:
 
 
 class Diagnostics:
-    def __init__(self, root, *, offline=False, runner=None, lookup=None, progress=None):
+    def __init__(self, root, *, offline=False, runner=None, lookup=None, progress=None, confirm_fn=None):
         self.root = Path(root).expanduser().resolve()
         self.offline = offline
         self.runner = runner or run_command
@@ -41,6 +41,7 @@ class Diagnostics:
         self.manifests = {}
         self.events = []
         self.progress = progress
+        self.confirm_fn = confirm_fn
 
     def add(self, name, status, detail):
         check = Check(name, status, sanitize(detail))
@@ -358,6 +359,8 @@ class Diagnostics:
 
     def _confirm(self, description, input_fn, emit):
         emit(sanitize(description))
+        if self.confirm_fn is not None:
+            return self.confirm_fn(sanitize(description)) is True
         answer = input_fn("Autoriza somente esta ação? [s/N] ").strip().casefold()
         return answer in ("s", "sim")
 

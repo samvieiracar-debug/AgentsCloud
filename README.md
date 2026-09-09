@@ -7,7 +7,8 @@ sincronizar, instalar e contribuir sem copiar arquivos manualmente.
 ## Arquitetura
 
 A base usa Python 3.11+, Git e uma CLI pequena. `argparse` cuida dos comandos,
-`tomllib` valida TOML e Questionary fornece perguntas e seleção com setas.
+`tomllib` valida TOML, Textual apresenta o hub em tela inteira e Questionary
+fornece perguntas e seleção nos comandos tradicionais.
 Não há servidor nem banco de dados. A pasta `Agents/` é plana para simplificar
 cópia e identificação de duplicatas; categorias e responsáveis ficam em `catalog.toml`.
 Nome e descrição vêm do agente, e o índice do README é gerado desses dados.
@@ -19,6 +20,7 @@ AgentsCloud/
 ├── templates/agente.toml     # Ponto de partida para um novo agente
 ├── src/agentscloud/
 │   ├── cli.py                # Fluxos update/upload e comandos auxiliares
+│   ├── hub.py                # Central visual de Update, Upload e Diagnóstico
 │   ├── ui.py                 # Perguntas, seleção e saída de terminal
 │   ├── agents.py             # Validação e identidade dos agentes
 │   ├── catalog.py            # Catálogo e geração do índice
@@ -33,6 +35,8 @@ AgentsCloud/
 ├── CONTRIBUTING.md           # Contribuição e recuperação
 ├── docs/compatibilidade.md   # Evidências e roteiro de homologação/piloto
 ├── diagnostico.py / diagnostico.cmd # Diagnóstico independente da .venv
+├── hub.py / hub.cmd          # Abre a central com a .venv local já preparada
+├── _hub_runtime.py           # Runtime isolado do hub, sem bootstrap Git
 ├── update.cmd / upload.cmd   # Duplo clique no Windows
 ├── update.py / upload.py     # Preparação automática e execução do fluxo
 ├── _launcher.py              # Parser, pull e sync sem dependências externas
@@ -55,8 +59,8 @@ uv sync --locked
 uv run agentscloud validate
 ```
 
-`uv sync --locked` prepara `.venv` a partir do lockfile. A dependência runtime
-direta é Questionary; as dependências transitivas e versões estão em `uv.lock`.
+`uv sync --locked` prepara `.venv` a partir do lockfile. As dependências de execução
+diretas são Textual e Questionary; as transitivas e versões estão em `uv.lock`.
 Como alternativa sem uv, crie e ative uma venv e execute `python -m pip install -e .`;
 essa alternativa resolve as versões permitidas em `pyproject.toml`, sem usar o lockfile.
 
@@ -69,13 +73,68 @@ Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para contribuições novas, alteraç
 de agentes existentes, revisão e recuperação. O estado da compatibilidade e o
 roteiro de piloto estão em [docs/compatibilidade.md](docs/compatibilidade.md).
 
-## Abrir com duplo clique no Windows
+## Hub: Update, Upload e Diagnóstico
+
+Depois de preparar o ambiente, abra **`hub.cmd`** no Windows ou execute:
+
+```console
+python hub.py
+```
+
+O hub reúne as três áreas em um painel de tela inteira, com menu lateral,
+azul-noite e ciano. O layout é pensado para 120×36 colunas e linhas e se adapta
+até 80×24. A abertura apresenta a central; consultas remotas, sincronização,
+instalação e publicação começam somente quando você inicia o respectivo fluxo.
+Terminais menores recebem um aviso para ampliar a janela. As cores e os estilos
+ficam em `src/agentscloud/theme.py`.
+
+- **Update:** consulta alterações e conduz a atualização. Na instalação,
+  escolha o catálogo inteiro ou selecione agentes com filtro pelas categorias
+  disponíveis. Revise a seleção e o destino antes de instalar.
+- **Upload:** orienta a escolha do agente, seus metadados, a revisão do conteúdo
+  e a confirmação de publicação por etapas. Commits pendentes continuam exigindo
+  revisão específica antes do envio.
+- **Diagnóstico:** reúne verificações e reparos confirmados do ambiente.
+
+Use **F2** para Update, **F3** para Upload, **F4** para Diagnóstico e **F1**
+para ajuda. **Tab/Shift+Tab** muda o foco, as **setas** navegam, **Espaço** marca
+agentes e **Enter** ativa a opção. As marcas de agentes são preservadas quando
+você troca o filtro de categorias. O mouse também pode ser usado.
+**Esc** cancela a pergunta atual ou solicita cancelar no próximo ponto seguro
+da operação. **Ctrl+Q/Ctrl+C** sai quando não há uma operação em andamento;
+durante uma operação, solicita o cancelamento e aguarda sua conclusão. Depois,
+use o atalho novamente para sair. Etapas já concluídas permanecem preservadas.
+
+O hub usa as credenciais Git já configuradas. Se precisar fazer login interativo
+no terminal, execute o atalho externo `update.cmd`/`upload.cmd` e volte à central.
+Reparos que precisem recriar a `.venv` em uso devem ser feitos com a central
+fechada, pelo diagnóstico independente.
+
+O atalho usa a `.venv` da pasta onde está `hub.py`. Ele não prepara dependências
+automaticamente: se o ambiente ou Textual estiver ausente, execute
+`uv sync --locked` nessa pasta e abra novamente. `diagnostico.cmd` e
+`python diagnostico.py` permanecem disponíveis sem Textual ou Questionary.
+
+Para operar outro clone de dados, mantendo o código e o ambiente do atalho:
+
+```console
+python hub.py --repo "caminho/do/outro-clone"
+```
+
+O caminho relativo de `--repo` é resolvido a partir do diretório do terminal.
+Sem `--repo`, o atalho opera sua própria pasta. Em um ambiente instalado,
+`agentscloud hub` abre a mesma central e usa o diretório atual como padrão;
+`agentscloud hub --repo CAMINHO` escolhe o clone a operar.
+`python hub.py --help` e `hub.cmd --help` funcionam sem as dependências visuais,
+sem preparar a `.venv` e sem consultar Git.
+
+## Atalhos diretos no Windows
 
 Abra **`update.cmd`** para sincronizar/instalar, **`upload.cmd`** para
 contribuir ou **`diagnostico.cmd`** para verificar problemas e oferecer reparos.
 O diagnóstico usa apenas a biblioteca padrão do Python; funciona sem .venv/Questionary. No Explorador, habilite a exibição das extensões para identificar os
 arquivos `.cmd`. Python 3.11+, Git e uv devem estar instalados e disponíveis no PATH.
-Os lançadores encontram um Python base por `py` ou `python`, preparam automaticamente
+Os atalhos `update` e `upload` encontram um Python base por `py` ou `python`, preparam automaticamente
 a `.venv` do clone e iniciam o fluxo com esse ambiente, inclusive no primeiro uso.
 A janela criada pelo clique aguarda uma tecla no sucesso ou erro.
 
@@ -96,6 +155,7 @@ consultar o remoto nem instalar agentes, execute na pasta do clone:
 ```powershell
 .\update.cmd --help
 .\upload.cmd --help
+.\hub.cmd --help
 uv run agentscloud validate
 ```
 
@@ -198,7 +258,8 @@ uv run agentscloud update
 3. Havendo commits remotos, pergunta **y/n**, com padrão **não**, antes de atualizar
    os arquivos locais por `git merge --ff-only`. Recusar encerra sem instalação.
    O fetch já feito atualiza referências Git, mas não o checkout.
-4. Após sincronizar, oferece instalar todos os agentes no destino pessoal exibido.
+4. Após sincronizar, oferece instalar o catálogo inteiro ou escolher agentes,
+   com filtro por categoria. A confirmação informa o destino pessoal e a seleção.
    Essa oferta também ocorre quando o repositório já está atualizado. Se HEAD
    estiver adiantado, informa que há commits não publicados e oferece instalar
    o catálogo local mediante confirmação. Históricos divergentes são recusados.
@@ -216,6 +277,8 @@ antes de tentar novamente. Os scripts não executam instruções dos TOMLs.
 
 | Comando | Efeito |
 | --- | --- |
+| `agentscloud hub` | Abre a central visual no ambiente instalado |
+| `python hub.py` / `hub.cmd` | Abre a central com a .venv local já preparada, sem pull ou sync |
 | `uv run agentscloud update` | Consulta, sincroniza e oferece instalação |
 | `uv run agentscloud upload` | Revisa pendências ou prepara e publica uma contribuição nova |
 | `uv run agentscloud validate` | Valida arquivos, catálogo e índice, sem rede |
@@ -226,7 +289,8 @@ antes de tentar novamente. Os scripts não executam instruções dos TOMLs.
 | `python diagnostico.py` / `diagnostico.cmd` | Verifica ferramentas, Git, dependências e logs; oferece reparos confirmados |
 | `python diagnostico.py --offline --non-interactive` | Diagnóstico local, sem consulta remota nem reparos |
 
-Nos quatro atalhos, `--repo CAMINHO` escolhe o **clone completo** que receberá
+Nos atalhos `update.py`, `update.cmd`, `upload.py` e `upload.cmd`,
+`--repo CAMINHO` escolhe o **clone completo** que receberá
 todas as fases: Git, ambiente `.venv` e código executado. Sem a opção, usam a pasta
 do script; caminhos relativos são resolvidos no diretório original do terminal.
 Um atalho no clone A com `--repo B` prepara e executa B. O alvo precisa ser a raiz
@@ -234,7 +298,7 @@ Git e conter o produto, incluindo `pyproject.toml` e `uv.lock`. O fluxo mantém
 o diretório original do terminal para `CODEX_HOME` relativo e caminhos manuais
 de upload.
 
-Após validar os argumentos, os atalhos exigem commit inicial, branch com upstream
+Após validar os argumentos, esses atalhos exigem commit inicial, branch com upstream
 e checkout/índice limpos, incluindo arquivos não rastreados. Em seguida executam
 `git pull --ff-only --no-rebase --no-autostash` no upstream configurado e
 `uv sync --locked` com o lockfile recém-atualizado. O ambiente é sempre a

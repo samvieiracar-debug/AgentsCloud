@@ -3,7 +3,7 @@
 O repositório de teste é [samvieiracar-debug/AgentsCloud](https://github.com/samvieiracar-debug/AgentsCloud).
 Novos agentes podem ser enviados pela CLI; mudanças em agentes existentes e no
 código seguem o fluxo Git de revisão da equipe. O projeto usa Python 3.11+, Git e
-uv, com Questionary como única dependência de execução direta.
+uv, com Textual para o hub e Questionary para os comandos tradicionais.
 
 ## Preparar o ambiente
 
@@ -19,6 +19,19 @@ Configure seu nome e e-mail Git caso ainda não estejam definidos. Antes de usar
 `upload` ou `update`, o checkout e o índice devem estar limpos, inclusive sem
 arquivos não rastreados. Guarde suas alterações em commits próprios ou resolva-as
 antes de continuar. O upstream identifica o remoto e a branch de destino.
+
+Para usar o fluxo visual, abra `hub.cmd`, execute `python hub.py` ou, no ambiente
+instalado, `agentscloud hub`. A central reúne Update, Upload e Diagnóstico;
+Upload apresenta a revisão por etapas e Update permite instalar o catálogo
+inteiro ou selecionar agentes por categoria. As confirmações de instalação,
+substituição de arquivos e publicação continuam sendo necessárias.
+
+O hub não faz pull nem prepara dependências ao abrir. Quando as dependências
+mudarem, feche a central e execute `uv sync --locked` na pasta do atalho.
+`python hub.py --repo CAMINHO` opera outro clone de dados com a `.venv` e o código
+da pasta do atalho; sem `--repo`, opera essa própria pasta. O diagnóstico
+independente em `diagnostico.cmd`/`python diagnostico.py` funciona sem o ambiente
+visual e continua disponível para recuperar a instalação.
 
 ## Enviar um agente novo
 

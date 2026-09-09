@@ -8,7 +8,8 @@ def build_parser(default_repo: Path | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Compartilhe agentes TOML do Codex por Git.")
     parser.add_argument("--repo", type=Path, default=default_repo or Path.cwd(), help="Raiz do clone (padrão: diretório atual).")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name, help_text in (("update", "Consulta o upstream, atualiza e oferece instalação."),
+    for name, help_text in (("hub", "Abre a central de Update, Upload e Diagnóstico."),
+                            ("update", "Consulta o upstream, atualiza e oferece instalação."),
                             ("upload", "Seleciona um agente pessoal e publica uma contribuição."),
                             ("validate", "Valida agentes, catálogo e índice sem acessar a rede."),
                             ("index", "Gera o índice de agentes do README.")):

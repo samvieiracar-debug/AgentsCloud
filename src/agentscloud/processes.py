@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from contextlib import contextmanager
+from contextvars import ContextVar
 import json
 import codecs
 import sys
@@ -22,6 +24,23 @@ NETWORK_TIMEOUT = 30
 INTERACTIVE_NETWORK_TIMEOUT = 180
 SYNC_TIMEOUT = 300
 PUSH_TIMEOUT = 180
+
+
+_PROCESS_OUTPUT = ContextVar("agentscloud_process_output", default=None)
+
+
+@contextmanager
+def process_output(emit):
+    """Encaminha saída do trabalho atual ao hub sem redirecionar stdout global.
+
+    O hub possui o teclado; subprocessos neste contexto não podem pedir entrada
+    no terminal. Credenciais já disponíveis continuam sendo usadas pelo Git.
+    """
+    token = _PROCESS_OUTPUT.set(emit)
+    try:
+        yield
+    finally:
+        _PROCESS_OUTPUT.reset(token)
 
 
 def sanitize(value, limit=4000):
@@ -100,7 +119,12 @@ class EventLog:
             return True
         except OSError:
             if not self.warned:
-                print("Aviso: não foi possível gravar o log local. A operação e os commits serão preservados.", file=sys.stderr)
+                warning = "Aviso: não foi possível gravar o log local. A operação e os commits serão preservados."
+                emit = _PROCESS_OUTPUT.get()
+                if emit is not None:
+                    emit(warning)
+                else:
+                    print(warning, file=sys.stderr)
                 self.warned = True
             return False
 
@@ -235,14 +259,19 @@ def _interactive_output(process, job, timeout):
     """Exibe linhas e prompts completos durante a execução; não persiste sua saída."""
     chunks = [[], []]
     lock = threading.Lock()
+    output = _PROCESS_OUTPUT.get()  # ContextVars não se propagam às threads leitoras.
 
     def consume(pipe, channel, index):
         decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         pending = ""
         def emit(text):
             with lock:
-                channel.write(sanitize(text, 65536))
-                channel.flush()
+                safe = sanitize(text, 65536)
+                if output is not None:
+                    output(safe)
+                else:
+                    channel.write(safe)
+                    channel.flush()
         while True:
             data = pipe.read1(4096)
             if not data:
@@ -293,7 +322,8 @@ def run_command(argv, *, cwd=None, timeout=LOCAL_TIMEOUT, env=None, interactive=
     if interactive and input_bytes is not None:
         raise ValueError("Entrada explícita requer comando sem interação.")
     environment = git_environment(env)
-    if not interactive:
+    hub_output = _PROCESS_OUTPUT.get() is not None
+    if not interactive or hub_output:
         environment = noninteractive_env(environment)
     process = None
     job = None
@@ -307,7 +337,7 @@ def run_command(argv, *, cwd=None, timeout=LOCAL_TIMEOUT, env=None, interactive=
             input_stream.seek(0)
         process = subprocess.Popen(
             [str(part) for part in argv], cwd=cwd, env=environment,
-            stdin=input_stream if input_stream is not None else (None if interactive else subprocess.DEVNULL),
+            stdin=input_stream if input_stream is not None else (None if interactive and not hub_output else subprocess.DEVNULL),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
             start_new_session=os.name != "nt",

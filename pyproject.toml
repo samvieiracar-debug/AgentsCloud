@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Compartilhe agentes TOML do Codex por Git."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["questionary>=2.1,<3"]
+dependencies = ["questionary>=2.1,<3", "textual>=8.2.8,<9"]
 
 [project.scripts]
 agentscloud = "agentscloud.cli:main"

@@ -1,4 +1,9 @@
 [[agents]]
+file = "calculadora-basica.toml"
+category = "teste"
+maintainer = "Samuel Vieira"
+
+[[agents]]
 file = "controle-volume.toml"
 category = "teste"
 maintainer = "Samuel Vieira"

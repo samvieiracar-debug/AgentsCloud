@@ -419,6 +419,7 @@ atualizado com `agentscloud index`.
 
 | Nome | Sintaxe | Categoria | Descrição | Responsável |
 | --- | --- | --- | --- | --- |
+| [calculadora-basica](Agents/calculadora-basica.toml) | Use o agente calculadora-basica para … | teste | Faz cálculos básicos de soma, subtração, multiplicação, divisão, porcentagem e expressões simples. | Samuel Vieira |
 | [controle-volume](Agents/controle-volume.toml) | Use o agente controle-volume para … | teste | Controla o volume principal de saída do Windows quando o usuário pede para aumentar, diminuir, silenciar, reativar ou definir o volume. | Samuel Vieira |
 | [piadista-ia](Agents/piadista-ia.toml) | Use o agente piadista-ia para … | teste | Conta piadas curtas e leves sobre inteligencia artificial. | Samuel Vieira |
 | [teste-remoto](Agents/teste-remoto.toml) | Use o agente teste-remoto para … | teste | Agente simples para verificar o uso de um TOML local no Codex. | Samuel Vieira |
